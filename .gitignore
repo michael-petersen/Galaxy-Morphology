@@ -7,3 +7,9 @@ Gfits/
 rfits/
 .DS_Store
 .ipynb_checkpoints
+
+# the galaxy zoo catalogue
+SGA_catalogue/zoo2MainSpecz.fits
+
+# notes for running full analysis
+SGA_catalogue/analysisnotes.txt
