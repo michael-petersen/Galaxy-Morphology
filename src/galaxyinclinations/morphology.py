@@ -248,3 +248,73 @@ def galaxymorphology(file,galaxy=None,data=None,noisefloor=-5.):
 
     return etalist, palist, scale_length, galaxy_name, radius, maxrad
     
+
+
+
+def galaxyflex(file,galaxy=None,data=None,noisefloor=-5.):
+
+    if data is not None and galaxy is None:
+        raise ValueError("If 'data' is provided, 'galaxy' must also be defined.")
+    
+    
+    with fits.open(file) as hdulist:
+        image_data = hdulist[1].data
+
+        if data is not None:
+            ra = data['RA_LEDA'][data['GALAXY']==galaxy]
+            dec = data['DEC_LEDA'][data['GALAXY']==galaxy]
+
+            wcs = WCS(hdulist[1].header)
+            pixel_coords = wcs.world_to_pixel_values(ra, dec)
+        
+    galaxy_name = file.split("-")[0]
+    h, w = image_data.shape
+
+    # set default
+    if data is None:
+        cx, cy = w//2, h//2
+    else:   
+        cx, cy = pixel_coords[0], pixel_coords[1]
+
+    # this choice of radius is a hyperparameter -- we may want to tune it
+    radius=h//4
+
+    y, x = np.indices((h,w))
+
+    # compute the cartesian pixel coordinates relative to center
+    X2,Y2 = (x-cx), (y-cy)
+
+    # created 1d radial profile
+    R = np.sqrt(X2**2 + Y2**2).ravel()
+    I = image_data.ravel()
+
+    valid_ = (I > 0) & (R <= radius)
+    R_valid_ = R[valid_]
+    I_valid_ = I[valid_]
+
+    maxrad = determine_background_radius(R_valid_, I_valid_, noisefloor)
+    
+    valid = (I > 0) & (R <= maxrad)
+    R_valid = R[valid]
+    logI_valid = np.log(I[valid])
+   
+    # Linear regression
+    slope, intercept, r_value, p_value, std_err = linregress(R_valid, logI_valid)
+    assert slope != 0, "Slope of linear regression is zero, cannot compute scale length."
+    scale_length = -1 / slope
+    assert scale_length > 0, "Computed scale length is not positive."
+
+    # we might want to check for bogus values here: but we can catch these on return as well
+    
+    # compute the cylindrical coordinates
+    R,P = np.sqrt(X2**2 + Y2**2).flatten(), np.arctan2(Y2, X2).flatten()
+    I = image_data.flatten()
+    galaxy_pixels = (R <= maxrad)
+
+    mmax, nmax = 10, 12
+
+    L = FLEX(scale_length,mmax,nmax, R[galaxy_pixels], P[galaxy_pixels], mass=I[galaxy_pixels])
+
+    # flatten the coefficients and return
+    return L.coscoefs.flatten(), L.sincoefs.flatten(), scale_length, galaxy_name, radius, maxrad
+    

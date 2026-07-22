@@ -11,5 +11,8 @@ rfits/
 # the galaxy zoo catalogue
 SGA_catalogue/zoo2MainSpecz.fits
 
+# the full SGA catalogue
+SGA_catalogue/SGA-2020.fits
+
 # notes for running full analysis
 SGA_catalogue/analysisnotes.txt

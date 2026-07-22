@@ -10,4 +10,4 @@ from .morphology import galaxymorphology
 from importlib.metadata import version
 
 __version__ = version("galaxyinclinations")
-__all__ = ["galaxymorphology"]
+__all__ = ["galaxymorphology", "galaxyflex"]
